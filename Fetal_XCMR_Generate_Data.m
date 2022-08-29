@@ -290,14 +290,13 @@ while(1)
             ElapsedTime=toc(myTime0);
             RemainingTime=toc(myTime);
         end
-        
     end
-    % save outputs to a mat file
-    output_file = [ACQ.Trajectory '_' ACQ.SliceOrientation '_RESP_' strrep(num2str(PHYSIO.RespiratoryMotionAmplitude(:)'),' ','') 
-        '_GFM_' strrep(num2str(PHYSIO.FetalMotionAmplitude(:)'),' ','') '.mat'];
-    save(output_file, 'T1Vol', 'T2Vol', 'TIME');
+    break;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % End of MR Simulation
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 end
+% save outputs to a mat file
+output_file = [ACQ.Trajectory '_' ACQ.SliceOrientation '_RESP' strrep(num2str(PHYSIO.RespiratoryMotionAmplitude(:)'),' ','') '_GFM' strrep(num2str(PHYSIO.FetalMotionAmplitude(:)'),' ','') '.mat'];
+save(output_file, 'T1Vol', 'T2Vol', 'TIME');
 end
