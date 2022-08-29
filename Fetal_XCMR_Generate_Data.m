@@ -282,8 +282,8 @@ while(1)
             Measurement_T2=circshift(Measurement_T2,ceil(squeeze(PHYSIO.Motion(iMeas,iSlice,:))));
 
             if strcmpi(ACQ.Trajectory,'SPIR')
-                T1Vol(:,:,:,iMeas)=Measurement_T1+Select_Phantom_Phase(SIM.MaternalT1,PHYSIO.RespiratoryPhases(iMeas,iSlice));
-                T2Vol(:,:,:,iMeas)=Measurement_T2+Select_Phantom_Phase(SIM.MaternalT2,PHYSIO.RespiratoryPhases(iMeas,iSlice));
+                T1Vol(:,:,:,iMeas)=Measurement_T1+(1-(Measurement_T1~=0)).*Select_Phantom_Phase(SIM.MaternalT1,PHYSIO.RespiratoryPhases(iMeas,iSlice));
+                T2Vol(:,:,:,iMeas)=Measurement_T2+(1-(Measurement_T2~=0)).*Select_Phantom_Phase(SIM.MaternalT2,PHYSIO.RespiratoryPhases(iMeas,iSlice));
                 
                 TIME(iMeas,iSlice)=ACQ.TIME(iMeas,iSlice);
             end
