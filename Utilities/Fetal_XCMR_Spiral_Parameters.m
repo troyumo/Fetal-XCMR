@@ -20,7 +20,7 @@ ACQ.SNR                  = 20;     % [Use reasonable scanner values]
 
 % For spiral this determines the number of arms
 ACQ.PrepTimes            = [48, 96, 144, 192]; % time in ms
-ACQ.nMeasurements        = 800 + sum(ACQ.PrepTimes)/ACQ.TR;    % [Use reasonable scanner values 500-5000] 
+ACQ.nMeasurements        = 800 + sum(ACQ.PrepTimes)/ACQ.TR + 1;    % [Use reasonable scanner values 500-5000] 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % User Selected Physiological Parameters
