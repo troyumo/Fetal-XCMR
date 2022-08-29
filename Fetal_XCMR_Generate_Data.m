@@ -126,8 +126,7 @@ while(1)
             else
                 SIM.CenterSlicePosition=round(range(SIM.CardiacSlices)/2);
             end
-            SIM.SlicesToLoad=SIM.CardiacSlices(SIM.CenterSlicePosition)-floor((ACQ.nSlices*ACQ.SliceThickness-1)/2):SIM.CardiacSlices(SIM.CenterSlicePosition)+ceil((ACQ.nSlices*ACQ.SliceThickness-1)/2);
-            SIM.SlicesToLoad=SIM.SlicesToLoad(1)-ceil(10/ACQ.SliceThickness)*ACQ.SliceThickness:SIM.SlicesToLoad(end)+ceil(10/ACQ.SliceThickness)*ACQ.SliceThickness;
+            SIM.SlicesToLoad=SIM.CardiacSlices(SIM.CenterSlicePosition)-floor((3*ACQ.SliceThickness/ACQ.SpatialResolution-1)/2):SIM.CardiacSlices(SIM.CenterSlicePosition)+ceil((3*ACQ.SliceThickness/ACQ.SpatialResolution-1)/2);
             SIM.SlicesToMeasure=1+ceil(10/ACQ.SliceThickness):ceil(10/ACQ.SliceThickness)+ACQ.nSlices;
             SIM.FetalT1=zeros(size(Maternal,1),size(Maternal,2),length(SIM.SlicesToLoad),20,'single');
             SIM.FetalT2=zeros(size(Maternal,1),size(Maternal,2),length(SIM.SlicesToLoad),20,'single');
@@ -247,11 +246,11 @@ while(1)
         TIME=zeros(size(ACQ.TIME));
         % Optional turn on to have ground truth comparison
         if    ACQ.GroundTruthFlag
-            GROUNDTRUTH_T1=zeros(ACQ.FOVFreq,ACQ.FOVPhase,ACQ.nMeasurements,ACQ.nSlices,'single');
-            GROUNDTRUTH_T2=zeros(ACQ.FOVFreq,ACQ.FOVPhase,ACQ.nMeasurements,ACQ.nSlices,'single');
+            T1Vol=zeros(ACQ.FOVFreq,ACQ.FOVPhase,size(SIM.SlicesToLoad,2),ACQ.nMeasurements,'single');
+            T2Vol=zeros(ACQ.FOVFreq,ACQ.FOVPhase,size(SIM.SlicesToLoad,2),ACQ.nMeasurements,'single');
         else
-            GROUNDTRUTH_T1=[];
-            GROUNDTRUTH_T2=[];
+            T1Vol=[];
+            T2Vol=[];
         end
     end
     
@@ -276,33 +275,15 @@ while(1)
             end
             ProgressCounter=ProgressCounter+1;
             
-            Measurement_T1=Interp_Phantom(SIM.FetalT1,PHYSIO.CardiacPhases(iMeas,iSlice));
+            Measurement_T1=Select_Phantom_Phase(SIM.FetalT1,PHYSIO.CardiacPhases(iMeas,iSlice));
             Measurement_T1=circshift(Measurement_T1,ceil(squeeze(PHYSIO.Motion(iMeas,iSlice,:))));
             
-            Measurement_T2=Interp_Phantom(SIM.FetalT2,PHYSIO.CardiacPhases(iMeas,iSlice));
+            Measurement_T2=Select_Phantom_Phase(SIM.FetalT2,PHYSIO.CardiacPhases(iMeas,iSlice));
             Measurement_T2=circshift(Measurement_T2,ceil(squeeze(PHYSIO.Motion(iMeas,iSlice,:))));
-            % Optional switch to Motion_Shift for fractional displacements. Not fully tested
-            % Measurement=Motion_Shift(Measurement,squeeze(PHYSIO.Motion(iMeas,iSlice,:)));
 
-%             elseif strcmpi(ACQ.Trajectory,'RAD')
-%                 Measurement=Average_Slices(Measurement+(1-(Measurement~=0)).*Interp_Phantom(SIM.Maternal,PHYSIO.RespiratoryPhases(iMeas,iSlice)),ACQ.SliceThickness);
-%                 
-%                 % Optional turn on to have ground truth comparison
-%                 if ACQ.GroundTruthFlag
-%                     GROUNDTRUTH(:,:,iMeas,iSlice)=ifft2c(Resize_Volume(fft2c(Measurement(:,:,SIM.SlicesToMeasure(iSlice))),[ACQ.MatrixSizeFreq,ACQ.MatrixSizePhase]));
-%                 end
-%                 FT = MCNUFFT(ACQ.kx(:,iMeas)+1i*ACQ.ky(:,iMeas),ones(ACQ.MatrixSize,1),ACQ.Coils);
-%                 KSPACE(:,iMeas,:,iSlice)=(FT*double(ifft2c(Resize_Volume(fft2c(Resize_Volume(Measurement(:,:,SIM.SlicesToMeasure(iSlice)),ACQ.FOV)),ACQ.MatrixSize))));
-%                 TIME(iMeas,iSlice)=ACQ.TIME(iMeas,iSlice);
             if strcmpi(ACQ.Trajectory,'SPIR')
-                Measurement_T1=Average_Slices(Measurement_T1+(1-(Measurement_T1~=0)).*Interp_Phantom(SIM.MaternalT1,PHYSIO.RespiratoryPhases(iMeas,iSlice)),ACQ.SliceThickness);
-                Measurement_T2=Average_Slices(Measurement_T2+(1-(Measurement_T2~=0)).*Interp_Phantom(SIM.MaternalT2,PHYSIO.RespiratoryPhases(iMeas,iSlice)),ACQ.SliceThickness);
-
-                % Optional turn on to have ground truth comparison
-                if ACQ.GroundTruthFlag
-                    GROUNDTRUTH_T1(:,:,iMeas,iSlice)=Measurement_T1(:,:,SIM.SlicesToMeasure(iSlice));
-                    GROUNDTRUTH_T2(:,:,iMeas,iSlice)=Measurement_T2(:,:,SIM.SlicesToMeasure(iSlice));
-                end
+                T1Vol(:,:,:,iMeas)=Measurement_T1+Select_Phantom_Phase(SIM.MaternalT1,PHYSIO.RespiratoryPhases(iMeas,iSlice));
+                T2Vol(:,:,:,iMeas)=Measurement_T2+Select_Phantom_Phase(SIM.MaternalT2,PHYSIO.RespiratoryPhases(iMeas,iSlice));
                 
                 TIME(iMeas,iSlice)=ACQ.TIME(iMeas,iSlice);
             end
@@ -311,16 +292,10 @@ while(1)
         end
         
     end
-    % Iteratively generate NOISE and measure SNR to desired level
-    KSPACE=double(KSPACE);
-    
-    NOISE = Iterative_Noise(KSPACE,ACQ);
-    ElapsedTime=toc(myTime0);
-    clc
-    display(['XCAT Volumes loaded In: ',num2str(round(VolumeLoadingTime)),'s'])
-    display(['XCMR Simulated In: ',num2str(round(ElapsedTime)),'s'])
-    
-    break;
+    % save outputs to a mat file
+    output_file = [ACQ.Trajectory '_' ACQ.SliceOrientation '_RESP_' strrep(num2str(PHYSIO.RespiratoryMotionAmplitude(:)'),' ','') 
+        '_GFM_' strrep(num2str(PHYSIO.FetalMotionAmplitude(:)'),' ','') '.mat'];
+    save(output_file, 'T1Vol', 'T2Vol', 'TIME');
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % End of MR Simulation
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

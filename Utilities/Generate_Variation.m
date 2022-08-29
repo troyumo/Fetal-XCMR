@@ -6,7 +6,7 @@ function [RR] = Generate_Variation(RMSSD, Constraint, TraceLength, BaseRR)
 
 % RMSSD         : RMS beat-to-beat differences (in ms) (6 is good)
 % Constraint    : Multiplicative factor to bound HRV (0.14 is good)
-% TraceLength   : Time of measurement (in seconds)
+% TraceLength   : Time of measurement (in ms)
 % BaseRR        : Base RR length
 % RR            : Simulated RR intervals (CTG Trace)
 
